@@ -102,6 +102,31 @@ StyleAllocator StylePtr() {
   return &factory;
 };
 
+class StyleFactoryWithDefault : public StyleFactory {
+public:
+  StyleFactoryWithDefault(StyleFactory* allocator,
+			  const char* default_arguments) :
+    allocator_(allocator), default_arguments_(default_arguments) {
+  }
+  BladeStyle* make() override {
+    DefaultArgumentParserWrapper dapw(CurrentArgParser, default_arguments_);
+    CurrentArgParser = &dapw;
+    BladeStyle* ret = allocator_->make();
+    CurrentArgParser = dapw.argParser_;
+    return ret;
+  }
+  
+  StyleFactory* allocator_;
+  const char* default_arguments_;
+};
+
+template<class STYLE>
+StyleAllocator StylePtr(const char* default_arguments) {
+  return new StyleFactoryWithDefault(StylePtr<STYLE>(), default_arguments);
+}
+
+// Same as StylePtr, but makes the style a "charging" style, which means
+// that you can't turn it on/off, and the battery low warning is disabled.
 template<class STYLE>
 StyleAllocator ChargingStylePtr() {
   static StyleFactoryImpl<ChargingStyle<STYLE> > factory;

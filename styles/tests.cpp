@@ -22,8 +22,7 @@ float clamp(float x, float a, float b) {
 }
 
 struct CONFIG { struct Preset* presets; size_t num_presets;};
-CONFIG preset = { 0,0 };
-CONFIG* current_config = &preset;
+extern CONFIG* current_config;
 
 #define PROFFIE_TEST
 
@@ -117,6 +116,7 @@ Monitoring monitor;
 #include "../common/color.h"
 #include "../blades/blade_base.h"
 #include "cylon.h"
+#include "../common/arg_parser.h"
 #include "style_ptr.h"
 #include "colors.h"
 #include "inout_helper.h"
@@ -143,6 +143,7 @@ Monitoring monitor;
 #include "../transitions/fade.h"
 #include "../transitions/instant.h"
 #include "../transitions/random.h"
+#include "../transitions/loop.h"
 #include "../functions/blade_angle.h"
 #include "../functions/twist_angle.h"
 #include "../functions/swing_speed.h"
@@ -150,6 +151,7 @@ Monitoring monitor;
 #include "../functions/center_dist.h"
 #include "../functions/effect_position.h"
 #include "../functions/random.h"
+#include "../functions/mult.h"
 #include "mix.h"
 #include "strobe.h"
 #include "hump_flicker.h"
@@ -164,7 +166,33 @@ Monitoring monitor;
 #include "fire.h"
 #include "sparkle.h"
 #include "../common/command_parser.h"
-#include "../common/arg_parser.h"
+#include "../common/preset.h"
+
+Color16 TestRgbArgColors[256];
+
+void clear_test_colors() {
+  for (size_t i = 0; i < NELEM(TestRgbArgColors); i++) {
+    TestRgbArgColors[i] = Color16();
+  }
+}
+
+template<int arg, class COLOR>
+class TestRgbArg : public RgbArg<arg, COLOR> {
+public:
+  TestRgbArg() : RgbArg<arg, COLOR>() {
+    TestRgbArgColors[arg] = RgbArg<arg,COLOR>::color_;
+  }
+};
+
+Preset presets[] = {
+  { "one", "t1",
+    StylePtr<Gradient<TestRgbArg<1, Red>, TestRgbArg<2, Green>, TestRgbArg<3, Blue>>>("0,0,1 0,1,0 1,0,0"),
+    "uno" }
+};
+CONFIG preset = { presets, 1 };
+CONFIG* current_config = &preset;
+
+
 CommandParser* parsers = NULL;
 ArgParserInterface* CurrentArgParser;
 
@@ -200,6 +228,7 @@ public:
 
   int num_leds() const override { return colors.size(); }
   bool is_on() const override { return on_; }
+  bool is_powered() const override { return true; }
   void set(int led, Color16 c) override {
 //    fprintf(stderr, "SETILISET %d = %d %d %d\n", led, c.r, c.g, c.b);
     colors[led] = c;
@@ -306,6 +335,20 @@ void test_cylon() {
   allow_disable_ = false;			\
   style->run(&mock_blade);			\
 } while(0)
+
+#define CHECK_NEAR(X, Y, D) do {                                                \
+  auto x_ = (X);                                                                \
+  auto y_ = (Y);                                                                \
+  if (fabs(x_ - y_) > D) { std::cerr << #X << " (" << x_ << ") ~!= " << #Y << " (" << y_ << ") line " << __LINE__ << std::endl;  exit(1); } \
+} while(0)
+
+#define CHECK_COLOR(X, R, G, B, maxdelta) do {	\
+  auto x = (X);					\
+  CHECK_NEAR(x.r, R, maxdelta);			\
+  CHECK_NEAR(x.g, G, maxdelta);			\
+  CHECK_NEAR(x.b, B, maxdelta);			\
+} while(0)
+
 
 void test_inouthelper(BladeStyle* style) {
   MockBlade mock_blade;
@@ -415,6 +458,20 @@ Color16 get_color_when_on(BladeStyle* style) {
   int last = 0;
 
   for (int i = 0; i < 10000; i++) STEP();
+  return mock_blade.colors[0];
+}
+
+Color16 get_color_after_ignition(BladeStyle* style, int millis) {
+  MockBlade mock_blade;
+  mock_blade.SetStyle(style);
+  mock_blade.colors.resize(1);
+  on_ = false;
+  micros_ = 0;
+  for (int i = 0; i < 10000; i++) STEP();
+  on_ = true;
+  int last = 0;
+
+  for (int i = 0; i < millis; i++) STEP();
   return mock_blade.colors[0];
 }
 
@@ -572,6 +629,36 @@ void TestCompileStyle() {
                 Scale<EffectRandomF<EFFECT_BLAST>, Int<28000>, Int<8000>>>>,
       EFFECT_BLAST>,
     InOutTrL<TrWipe<300>, TrWipeIn<500>>>> t1;
+
+
+  TestStyle<Layers<
+    Black,
+    TransitionEffectL< TrConcat<TrFade<1>, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, TrFade<1>, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, TrFade<1>, TrFade<1>, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, White, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, White, TrFade<1>, White, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, White, TrFade<1>, White, TrFade<1>, White, TrFade<1>>, EFFECT_BLAST>,
+
+    TransitionEffectL< TrConcat<TrFade<1>, White, TrFade<1>, White, TrFade<1>, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, White, TrFade<1>, White, TrFade<1>, White, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, White, TrFade<1>, TrFade<1>, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, White, TrFade<1>, TrFade<1>, White, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, TrFade<1>, White, TrFade<1>, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, TrFade<1>, White, TrFade<1>, White, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, TrFade<1>, TrFade<1>, TrFade<1>>, EFFECT_BLAST>,
+    TransitionEffectL< TrConcat<TrFade<1>, TrFade<1>, TrFade<1>, White, TrFade<1>>, EFFECT_BLAST>
+    >> t2;
+    
+  TestStyle<Layers<
+    Black,
+    TransitionEffectL< TrLoop< TrFade<1> >, EFFECT_BLAST>,
+    TransitionEffectL< TrLoopUntil< Int<1>, TrFade<1>, TrFade<1>>, EFFECT_BLAST>
+	      >> t3;
+
+  TestStyle<Layers<
+    Black,
+	      Remap<SmoothStep<Int<0>,SwingSpeed<250>>,AlphaL<RgbArg<BASE_COLOR_ARG,Red>,Mult<RandomPerLEDF,CenterDistF<Int<32768>>>>>>> t4;
 }
 
 
@@ -592,6 +679,29 @@ void test_style5() {
 	      >> t1;
   Color16 c = get_color_when_on(&t1);
 }
+
+void test_style6() {
+  TestStyle<Layers<WHITE, InOutTrL<TrFade<1000>, TrFade<500>>>> t1;
+  CHECK_COLOR(get_color_after_ignition(&t1, 250), 16384, 16384, 16384, 200);
+  CHECK_COLOR(get_color_after_ignition(&t1, 500), 32768, 32768, 32768, 200);
+  CHECK_COLOR(get_color_after_ignition(&t1, 750), 49152, 49152, 49152, 200);
+
+  TestStyle<Layers<WHITE, InOutTrL<TrFadeX<BendTimePow<1000, 65536>>, TrFade<500>>>> t2;
+  CHECK_COLOR(get_color_after_ignition(&t2, 250), 4096, 4096, 4096, 200);
+  CHECK_COLOR(get_color_after_ignition(&t2, 500), 16384, 16384, 16384, 200);
+  CHECK_COLOR(get_color_after_ignition(&t2, 750), 36864, 36864, 36864, 200);
+
+  TestStyle<Layers<WHITE, InOutTrL<TrFadeX<BendTimePow<1000, 16384>>, TrFade<500>>>> t3;
+  CHECK_COLOR(get_color_after_ignition(&t3, 250), 32768, 32768, 32768, 200);
+  CHECK_COLOR(get_color_after_ignition(&t3, 500), 46341, 46341, 46341, 200);
+  CHECK_COLOR(get_color_after_ignition(&t3, 750), 56755, 56755, 56755, 200);
+
+  TestStyle<Layers<WHITE, InOutTrL<TrFadeX<BendTimePowInv<1000, 65536>>, TrFade<500>>>> t4;
+  CHECK_COLOR(get_color_after_ignition(&t4, 250), 28672, 28672, 28672, 200);
+  CHECK_COLOR(get_color_after_ignition(&t4, 500), 49152, 49152, 49152, 200);
+  CHECK_COLOR(get_color_after_ignition(&t4, 750), 61440, 61440, 61440, 200);
+}
+
 
 void testGetArg(const char* str, int arg, const char* expected) {
   char tmp[1024];
@@ -721,9 +831,59 @@ void test_argument_parsing() {
   testMaxUsedArgument("charging", 0);
   testMaxUsedArgument("rainbow", 2);
   testMaxUsedArgument("fire", 2);
+
+  testGetArg("builtin 0 1", 0, "builtin");
+  testGetArg("builtin 0 1", 1, "0");
+  testGetArg("builtin 0 1", 2, "1");
+  testGetArg("builtin 0 1", 3, "0,0,1");
+  testGetArg("builtin 0 1", 4, "0,1,0");
+  testGetArg("builtin 0 1", 5, "1,0,0");
+
+  clear_test_colors();
+  testGetArg("builtin 0 1", 0, "builtin");
+  CHECK_COLOR(TestRgbArgColors[1], 0, 0, 1, 0);
+  CHECK_COLOR(TestRgbArgColors[2], 0, 1, 0, 0);
+  CHECK_COLOR(TestRgbArgColors[3], 1, 0, 0, 0);
+
+  clear_test_colors();
+  testGetArg("builtin 0 1 1,2,3", 0, "builtin");
+  CHECK_COLOR(TestRgbArgColors[1], 1, 2, 3, 0);
+  CHECK_COLOR(TestRgbArgColors[2], 0, 1, 0, 0);
+  CHECK_COLOR(TestRgbArgColors[3], 1, 0, 0, 0);
+
+  clear_test_colors();
+  testGetArg("builtin 0 1 1,2,3 4,5,6", 0, "builtin");
+  CHECK_COLOR(TestRgbArgColors[1], 1, 2, 3, 0);
+  CHECK_COLOR(TestRgbArgColors[2], 4, 5, 6, 0);
+  CHECK_COLOR(TestRgbArgColors[3], 1, 0, 0, 0);
+
+  clear_test_colors();
+  testGetArg("builtin 0 1 1,2,3 4,5,6 7,8,9", 0, "builtin");
+  CHECK_COLOR(TestRgbArgColors[1], 1, 2, 3, 0);
+  CHECK_COLOR(TestRgbArgColors[2], 4, 5, 6, 0);
+  CHECK_COLOR(TestRgbArgColors[3], 7, 8, 9, 0);
+
+  clear_test_colors();
+  testGetArg("builtin 0 1 ~ 4,5,6 7,8,9", 0, "builtin");
+  CHECK_COLOR(TestRgbArgColors[1], 0, 0, 1, 0);
+  CHECK_COLOR(TestRgbArgColors[2], 4, 5, 6, 0);
+  CHECK_COLOR(TestRgbArgColors[3], 7, 8, 9, 0);
+
+  clear_test_colors();
+  testGetArg("builtin 0 1 ~ ~ 7,8,9", 0, "builtin");
+  CHECK_COLOR(TestRgbArgColors[1], 0, 0, 1, 0);
+  CHECK_COLOR(TestRgbArgColors[2], 0, 1, 0, 0);
+  CHECK_COLOR(TestRgbArgColors[3], 7, 8, 9, 0);
+
+  clear_test_colors();
+  testGetArg("builtin 0 1 ~ ~ 7,8,9", 0, "builtin");
+  CHECK_COLOR(TestRgbArgColors[1], 0, 0, 1, 0);
+  CHECK_COLOR(TestRgbArgColors[2], 0, 1, 0, 0);
+  CHECK_COLOR(TestRgbArgColors[3], 7, 8, 9, 0);
 }
 
 int main() {
+  test_style6();
   test_style5();
   test_style4();
   test_cylon();

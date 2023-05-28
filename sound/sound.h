@@ -39,7 +39,7 @@ RefPtr<BufferedWavPlayer> GetFreeWavPlayer()  {
   return RefPtr<BufferedWavPlayer>();
 }
 
-RefPtr<BufferedWavPlayer> GetWavPlayerPlaying(Effect* effect) {
+RefPtr<BufferedWavPlayer> GetWavPlayerPlaying(const Effect* effect) {
   for (size_t unit = 0; unit < NELEM(wav_players); unit++) {
     if (wav_players[unit].isPlaying() &&
 	wav_players[unit].current_file_id().GetEffect() == effect) {
@@ -115,7 +115,9 @@ void SetupStandardAudioLow() {
     wav_players[i].reset_volume();
   }
   dynamic_mixer.streams_[NELEM(wav_players)] = &beeper;
+#ifndef DISABLE_TALKIE  
   dynamic_mixer.streams_[NELEM(wav_players)+1] = &talkie;
+#endif
 }
 
 void SetupStandardAudio() {
@@ -124,6 +126,23 @@ void SetupStandardAudio() {
   dac.SetStream(&dynamic_mixer);
 }
 
+void SaySDInitError(int error) {
+#ifndef DISABLE_TALKIE
+  talkie.Say(spS);
+  talkie.Say(spD);
+  talkie.Say(spSTART);
+  talkie.SayNumber(error);
+#endif  
+}
+
+void SaySDCheckError(int error) {
+#ifndef DISABLE_TALKIE
+  talkie.Say(spS);
+  talkie.Say(spD);
+  talkie.Say(spCHECK);
+  talkie.SayNumber(error);
+#endif
+}
 
 #include "../common/config_file.h"
 #include "hybrid_font.h"

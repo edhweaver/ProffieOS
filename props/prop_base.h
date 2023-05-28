@@ -416,7 +416,7 @@ public:
 #define WRAP_BLADE_SHORTERNER(N)
 #endif
 #define SET_BLADE_STYLE(N) do {                                         \
-    BladeStyle* tmp = style_parser.Parse(current_preset_.current_style##N.get()); \
+      BladeStyle* tmp = style_parser.Parse(current_preset_.GetStyle(N));  \
     WRAP_BLADE_SHORTERNER(N)                                            \
     current_config->blade##N->SetStyle(tmp);                            \
   } while (0);
@@ -544,9 +544,10 @@ public:
 
   // Measure and return the blade identifier resistor.
   float id() {
+    EnableBooster();
     BLADE_ID_CLASS_INTERNAL blade_id;
     float ret = blade_id.id();
-    STDOUT << "ID: " << ret << "\n";
+    STDERR << "ID: " << ret << "\n";
 #ifdef SPEAK_BLADE_ID
     talkie.Say(spI);
     talkie.Say(spD);
@@ -562,9 +563,7 @@ public:
     return ret;
   }
 
-  // Called from setup to identify the blade and select the right
-  // Blade driver, style and sound font.
-  void FindBlade() {
+  size_t FindBestConfig() {
     static_assert(NELEM(blades) > 0, "blades array cannot be empty");
     
     size_t best_config = 0;
@@ -580,8 +579,46 @@ public:
         }
       }
     }
-    STDOUT.print("blade= ");
-    STDOUT.println(best_config);
+    return best_config;
+  }
+
+#ifdef BLADE_ID_SCAN_MILLIS
+#ifndef SHARED_POWER_PINS
+#warning SHARED_POWER_PINS is recommended when using BLADE_ID_SCAN_MILLIS
+#endif
+  bool find_blade_again_pending_ = false;
+  uint32_t last_scan_id_ = 0;
+  bool ScanBladeIdNow() {
+    uint32_t now = millis();
+    if (now - last_scan_id_ > BLADE_ID_SCAN_MILLIS) {
+      last_scan_id_ = now;
+      size_t best_config = FindBestConfig();
+      if (current_config != blades + best_config) {
+	// We can't call FindBladeAgain right away because
+	// we're called from the blade. Wait until next loop() call.
+	find_blade_again_pending_ = true;
+      }
+      return true;
+    }
+    return false;
+  }
+    
+  // Must be called from loop()
+  void PollScanId() {
+    if (find_blade_again_pending_) {
+      find_blade_again_pending_ = false;
+      FindBladeAgain();
+    }
+  }
+#else
+  void PollScanId() {}
+#endif  
+
+  // Called from setup to identify the blade and select the right
+  // Blade driver, style and sound font.
+  void FindBlade() {
+    size_t best_config = FindBestConfig();
+    STDOUT << "blade = " << best_config << "\n";
     current_config = blades + best_config;
 
 #define ACTIVATE(N) do {     \
@@ -599,14 +636,8 @@ public:
     return;
 
 #if NUM_BLADES != 0
-
   bad_blade:
-    STDOUT.println("BAD BLADE");
-#ifdef ENABLE_AUDIO
-    talkie.Say(talkie_error_in_15, 15);
-    talkie.Say(talkie_blade_array_15, 15);
-#endif
-
+    ProffieOSErrors::error_in_blade_array();
 #endif
   }
 
@@ -1017,7 +1048,7 @@ public:
       if (current_style() && !current_style()->Charging()) {
         LowBatteryOff();
         if (millis() - last_beep_ > 15000) {  // (was 5000)
-          STDOUT << "Low battery: " << battery_monitor.battery() << " volts\n";
+	  STDOUT << "Low battery: " << battery_monitor.battery() << " volts\n";
           SaberBase::DoLowBatt();
           last_beep_ = millis();
         }
@@ -1060,6 +1091,7 @@ public:
       clash_pending_ = false;
       Clash2(pending_clash_is_stab_, pending_clash_strength_);
     }
+    PollScanId();
     CheckLowBattery();
 #ifdef ENABLE_AUDIO
     if (track_player_ && !track_player_->isPlaying()) {
@@ -1250,11 +1282,11 @@ public:
       return true;
     }
     if (!strcmp(cmd, "clash")) {
-      Clash(false, 10.0);
+      Clash2(false, 10.0);
       return true;
     }
     if (!strcmp(cmd, "stab")) {
-      Clash(true, 10.0);
+      Clash2(true, 10.0);
       return true;
     }
     if (!strcmp(cmd, "force")) {
@@ -1329,6 +1361,28 @@ public:
       beeper.Beep(0.5, 261.63 * 2);
       beeper.Beep(0.5, 130.81 * 2);
       beeper.Beep(1.0, 196.00 * 2);
+      return true;
+    }
+#endif
+#ifdef ENABLE_DEVELOPER_COMMANDS
+    if (!strcmp(cmd, "sd_card_not_found")) {
+      ProffieOSErrors::sd_card_not_found();
+      return true;
+    }
+    if (!strcmp(cmd, "font_directory_not_found")) {
+      ProffieOSErrors::font_directory_not_found();
+      return true;
+    }
+    if (!strcmp(cmd, "error_in_blade_array")) {
+      ProffieOSErrors::error_in_blade_array();
+      return true;
+    }
+    if (!strcmp(cmd, "error_in_font_directory")) {
+      ProffieOSErrors::error_in_font_directory();
+      return true;
+    }
+    if (!strcmp(cmd, "low_battery")) {
+      SaberBase::DoLowBatt();
       return true;
     }
 #endif
@@ -1469,12 +1523,11 @@ public:
 
 #define SET_STYLE_CMD(N)                             \
     if (!strcmp(cmd, "set_style" #N) && arg) {        \
-      current_preset_.current_style##N = mkstr(arg); \
+      current_preset_.current_style_[N-1] = mkstr(arg); \
       current_preset_.Save();                        \
       return true;                                   \
     }
     ONCEPERBLADE(SET_STYLE_CMD)
-
     if (!strcmp(cmd, "move_preset") && arg) {
       int32_t pos = strtol(arg, NULL, 0);
       current_preset_.SaveAt(pos);

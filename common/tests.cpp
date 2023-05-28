@@ -24,6 +24,8 @@
 
 #define current_directory "."
 #define next_current_directory(dir) nullptr
+#define previous_current_directory(dir) nullptr
+#define last_current_directory() "."
 
 int random(int x) { return rand() % x; }
 
@@ -207,9 +209,9 @@ void test_current_preset() {
   CHECK_EQ(preset.preset_num, 0);
   CHECK_STREQ(preset.font.get(), "font0");
   CHECK_STREQ(preset.track.get(), "track0");
-  CHECK_STREQ(preset.current_style1.get(), "style0:1");
-  CHECK_STREQ(preset.current_style2.get(), "style0:2");
-  CHECK_STREQ(preset.current_style3.get(), "style0:3");
+  CHECK_STREQ(preset.current_style_[0].get(), "style0:1");
+  CHECK_STREQ(preset.current_style_[1].get(), "style0:2");
+  CHECK_STREQ(preset.current_style_[2].get(), "style0:3");
   CHECK_STREQ(preset.name.get(), "preset0");
 
   CHECK(preset.Load(1));

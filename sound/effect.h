@@ -13,9 +13,9 @@ int current_alternative = 0;
 // num_alternatives == 3 means alt000/, alt001/, alt002/
 int num_alternatives = 0;
 
-constexpr bool isDigit(char s) { return s >= 0 && s <= '9'; }
+constexpr bool PO_isDigit(char s) { return s >= 0 && s <= '9'; }
 bool isAllDigits(const char* s) {
-  for (;*s;s++) if(!isDigit(*s)) return false;
+  for (;*s;s++) if(!PO_isDigit(*s)) return false;
   return true;
 }
 
@@ -35,8 +35,8 @@ class Effect {
   // is to be smaller than using the filename to identify the file.
   class FileID {
    public:
-    FileID(const Effect* effect, int file, int sub, int alt) : effect_(effect), file_(file), sub_id_(sub), alt_(alt) {}
-    FileID(const Effect* effect, int file, int sub) : effect_(effect), file_(file), sub_id_(sub), alt_(current_alternative) {}
+    FileID(Effect* effect, int file, int sub, int alt) : effect_(effect), file_(file), sub_id_(sub), alt_(alt) {}
+    FileID(Effect* effect, int file, int sub) : effect_(effect), file_(file), sub_id_(sub), alt_(current_alternative) {}
     FileID() : effect_(nullptr), file_(0), sub_id_(0) {}
 
     bool operator==(const FileID& other) const {
@@ -50,7 +50,7 @@ class Effect {
 
     void GetName(char *filename) { effect_->GetName(filename, this); }
 
-    const Effect* GetEffect() const { return effect_; }
+    Effect* GetEffect() const { return effect_; }
     int GetFileNum() const { return file_; }
     int GetSubId() const { return sub_id_; }
     int GetAlt() const { return alt_; }
@@ -68,7 +68,7 @@ class Effect {
     }
 
    private:
-    const Effect* effect_;
+    Effect* effect_;
     uint16_t file_;
     uint8_t sub_id_;
     uint8_t alt_;
@@ -156,9 +156,9 @@ class Effect {
   }
   static int altnum(const char* s) {
     if (!startswith("alt", s)) return -1;
-    if (!isDigit(s[3])) return -1;
-    if (!isDigit(s[4])) return -1;
-    if (!isDigit(s[5])) return -1;
+    if (!PO_isDigit(s[3])) return -1;
+    if (!PO_isDigit(s[4])) return -1;
+    if (!PO_isDigit(s[5])) return -1;
     if (s[6] != '/') return -1;
     return strtol(s + 3, nullptr, 10);
   }
@@ -210,9 +210,9 @@ class Effect {
 
     if (type_if_found == FilePattern::NONREDUNDANT_SUBDIRS &&
 	*rest == '/' &&
-	isDigit(rest[1]) &&
-	isDigit(rest[2]) &&
-	isDigit(rest[3])) {
+	PO_isDigit(rest[1]) &&
+	PO_isDigit(rest[2]) &&
+	PO_isDigit(rest[3])) {
       int sub = strtol(rest+1, nullptr, 10);
       sub_files_ = std::max<int>(sub_files_, sub + 1);
       rest += 4;
@@ -593,18 +593,7 @@ class Effect {
       STDOUT.println(" done");
     } else {
       STDOUT.println(" NOT FOUND!");
-#ifdef ENABLE_AUDIO
-#if VERSION_MAJOR <= 3	
-      if (strlen(dir) > 8) { // TODO: Check individual path segments
-	talkie.Say(talkie_font_directory_15, 15);
-	talkie.Say(talkie_too_long_15, 15);
-      } else
-#endif
-        if (strlen(dir)) {
-	  talkie.Say(talkie_font_directory_15, 15);
-	  talkie.Say(talkie_not_found_15, 15);
-	}
-#endif   // ENABLE_AUDIO
+      if (strlen(dir)) ProffieOSErrors::font_directory_not_found();
     }
 #endif   // ENABLE_SD
   }
@@ -628,10 +617,7 @@ class Effect {
 	  warned = true;
 	  STDOUT.println("");
 	  STDOUT.println("WARNING: This font seems to be missing some files!!");
-#ifdef ENABLE_AUDIO
-	  talkie.Say(talkie_error_in_15, 15);
-	  talkie.Say(talkie_font_directory_15, 15);
-#endif	  
+	  ProffieOSErrors::error_in_font_directory();
 	}
 	e->Show();
       }

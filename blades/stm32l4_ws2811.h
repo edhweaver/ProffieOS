@@ -14,7 +14,7 @@ class WS2811Client {
 public:
   virtual void done_callback() = 0;
   virtual int chunk_size() = 0;
-  virtual int pin() = 0;
+  virtual int pin() const = 0;
   virtual int frequency() = 0;
   virtual int num_leds() = 0;
   virtual void read(uint8_t* dest) = 0;
@@ -448,6 +448,9 @@ public:
       armv7m_atomic_or(&timer()->TIM->DIER, TIM_DIER_UDE);
     }
     TRACE(BLADE, "show exit");
+
+    extern void ClockControl_AvoidSleep();
+    ClockControl_AvoidSleep();
   }
   
   void DoRefill1() {
@@ -638,6 +641,7 @@ public:
   void Enable(bool on) override {
     pinMode(pin_, on ? OUTPUT : INPUT_ANALOG);
   }
+  int pin() const override { return pin_; }
 
 private:
   void done_callback() override {
@@ -683,7 +687,6 @@ private:
     return Color8::num_bytes(BYTEORDER) * 8;
   }
   
-  int pin() override { return pin_; }
   int frequency() override { return frequency_; }
   int num_leds() override { return num_leds_; }
 

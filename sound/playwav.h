@@ -77,16 +77,16 @@ public:
     return filename_;
   }
 
-  void PlayOnce(Effect* effect, float start = 0.0) {
+  void PlayOnce(const Effect::FileID& file_id, float start = 0.0) {
     sample_bytes_.set(0);
-    new_file_id_ = effect->RandomFile();
+    new_file_id_ = file_id;
     if (new_file_id_) {
       new_file_id_.GetName(filename_);
       start_ = start;
       effect_.set(nullptr);
       run_.set(true);
     }
-    PlayLoop(effect->GetFollowing());
+    PlayLoop(file_id.GetEffect()->GetFollowing());
   }
   void PlayLoop(Effect* effect) {
     effect_.set(effect);
@@ -101,7 +101,16 @@ public:
     written_ = num_samples_ = 0;
     interrupts();
   }
-#endif  
+#endif
+
+  // No need to stop interrupts since this is
+  // already called from the reader (interrupt) thread.
+  void StopFromReader() override {
+    run_.set(false);
+    state_machine_.reset_state_machine();
+    effect_.set(nullptr);
+    written_ = num_samples_ = 0;
+  }
 
   bool isPlaying() const {
     return run_.get();

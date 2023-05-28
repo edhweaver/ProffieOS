@@ -51,7 +51,8 @@ public:
     SaberBase::sound_number = current_file_id().GetFileNum();
   }
 
-  void PlayOnce(Effect* effect, float start = 0.0) {
+  void PlayOnce(Effect::FileID fileid, float start = 0.0) {
+    const Effect* effect = fileid.GetEffect();
     MountSDCard();
     EnableAmplifier();
     set_volume_now(volume_target() * effect->GetVolume() / 100);
@@ -60,7 +61,7 @@ public:
     pause_.set(true);
     clear();
     ResetStopWhenZero();
-    wav.PlayOnce(effect, start);
+    wav.PlayOnce(fileid, start);
     SetStream(&wav);
     // Fill up the buffer, if possible.
     while (!wav.eof() && space_available()) {
@@ -71,19 +72,25 @@ public:
       UpdateSaberBaseSoundInfo();
     }
   }
+  void PlayOnce(Effect* effect, float start = 0.0) {
+    PlayOnce(effect->RandomFile(), start);
+  }
   void PlayLoop(Effect* effect) { wav.PlayLoop(effect); }
 
-  void Stop() override {
+  // Do not call from interrupts!
+  void Stop() {
 #if 0
     // Immediate stop is impossible for multithreaded implementations.
     pause_.set(true);
     wav.Stop();
-    wav.Close()
 #else
+    int v = volume_target();
     set_fade_time(0.005);
     FadeAndStop();
     while (isPlaying()) delay(1);
+    set_volume_now(v);
 #endif    
+    wav.Close();
     clear();
   }
 
