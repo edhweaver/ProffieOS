@@ -44,11 +44,6 @@
 // #define CONFIG_FILE "config/testconfig.h"
 // #define CONFIG_FILE "config/test_bench_config.h"
 
-#ifdef CONFIG_FILE_TEST
-#undef CONFIG_FILE
-#define CONFIG_FILE CONFIG_FILE_TEST
-#endif
-
 #ifndef CONFIG_FILE
 #error Please set CONFIG_FILE as shown above.
 #endif
@@ -56,6 +51,22 @@
 #define CONFIG_TOP
 #include CONFIG_FILE
 #undef CONFIG_TOP
+
+#if !defined(ENABLE_AUDIO) && !defined(DISABLE_AUDIO)
+#define ENABLE_AUDIO
+#endif
+
+#if !defined(ENABLE_MOTION) && !defined(DISABLE_MOTION)
+#define ENABLE_MOTION
+#endif
+
+#if !defined(ENABLE_WS2811) && !defined(DISABLE_WS2811)
+#define ENABLE_WS2811
+#endif
+
+#if !defined(ENABLE_SD) && !defined(DISABLE_SD)
+#define ENABLE_SD
+#endif
 
 #ifndef BOOT_VOLUME
 #define BOOT_VOLUME VOLUME
@@ -174,6 +185,13 @@
 
 #include <SD.h>
 #include <SPI.h>
+
+#ifdef abs
+#undef abs
+namespace {
+template<typename T> constexpr auto abs(T x) -> decltype(-x) { return x < 0 ? -x : x; }
+}
+#endif
 
 #else // TEENSYDUINO
 #define digitalWriteFast digitalWrite
@@ -1404,7 +1422,6 @@ SSD1306Template<128, uint32_t, DISPLAY_POWER_PINS> display(&display_controller);
 #ifdef INCLUDE_SSD1306
 #include "display/ssd1306.h"
 #endif
-
 
 #ifdef ENABLE_MOTION
 
