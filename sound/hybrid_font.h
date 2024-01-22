@@ -446,7 +446,8 @@ public:
   Effect* getOut() { return SFX_out ? &SFX_out : &SFX_poweron; }
   Effect* getHum() { return SFX_humm ? &SFX_humm : &SFX_hum; }
 
-  void SB_Preon() {
+  void SB_Preon(EffectLocation location) {
+    saved_location_ = location;
     if (SFX_preon) {
       SFX_preon.SetFollowing(getOut());
       // PlayCommon(&SFX_preon);
@@ -480,9 +481,10 @@ public:
     }
   }
 
-  void SB_On() override {
+  void SB_On(EffectLocation location) override {
     // If preon exists, we've already queed up playing the poweron and hum.
     bool already_started = state_ == STATE_WAIT_FOR_ON && SFX_preon;
+    bool faston = state_ != STATE_WAIT_FOR_ON;
     if (monophonic_hum_) {
       if (!already_started) {
         PlayMonophonic(&SFX_poweron, &SFX_hum);
@@ -509,7 +511,7 @@ public:
       	  SaberBase::ClearSoundInfo();
       	}
       } else {
-        tmp = PlayPolyphonic(getOut());
+        tmp = PlayPolyphonic(faston && SFX_fastout ? &SFX_fastout : getOut());
       }
       hum_fade_in_ = 0.2;
       if (SFX_humm && tmp) {
@@ -528,8 +530,9 @@ public:
     }
   }
 
-  void SB_Off(OffType off_type) override {
-    SFX_in.SetFollowing(&SFX_pstoff);
+  void SB_Off(OffType off_type, EffectLocation location) override {
+    bool most_blades = location.on_blade(0);
+    SFX_in.SetFollowing( most_blades ?  &SFX_pstoff : nullptr );
     switch (off_type) {
       case OFF_CANCEL_PREON:
 	if (state_ == STATE_WAIT_FOR_ON) {
@@ -573,7 +576,12 @@ public:
           PlayPolyphonic(getNext(hum_player_, &SFX_in));
 	  hum_fade_out_ = 0.2;
         }
-        check_postoff_ = !!SFX_pstoff && off_type != OFF_FAST;
+	if (state_ == STATE_HUM_FADE_OUT && !most_blades) {
+	  state_ = STATE_HUM_ON;
+	} else {
+	  check_postoff_ = !!SFX_pstoff && off_type != OFF_FAST;
+	  saved_location_ = location;
+	}
         break;
       case OFF_BLAST:
         if (monophonic_hum_) {
@@ -587,10 +595,10 @@ public:
     }
   }
 
-  void SB_Effect(EffectType effect, float location) override {
+  void SB_Effect(EffectType effect, EffectLocation location) override {
     switch (effect) {
       default: return;
-      case EFFECT_PREON: SB_Preon(); return;
+      case EFFECT_PREON: SB_Preon(location); return;
       case EFFECT_POSTOFF: SB_Postoff(); return;
       case EFFECT_STAB:
 	if (SFX_stab) { PlayCommon(&SFX_stab); return; }
@@ -627,15 +635,19 @@ public:
       PlayPolyphonic(&X);
       return;
     }
-    if (detected && SFX_boot) {
-      PlayPolyphonic(&SFX_boot);
+    // SFX_bladein/out doesn't exist, playing font.wav instead
+    if (SFX_font) {
+    PVLOG_STATUS << "SFX_bladein/out doesn't exist, playing font.wav instead.\n";
+      PlayPolyphonic(&SFX_font);
       return;
     }
+    PVLOG_STATUS << " Didn't find font.wav, playing beep instead.\n";
+    // Otherwise, just beep to indicate blade status change.
     beeper.Beep(0.05, 2000.0);
   }
   void SB_NewFont() {
     if (!PlayPolyphonic(&SFX_font)) {
-      beeper.Beep(0.05, 2000.0);
+      beeper.Beep(0.05, 1046.5);
     }
   }
   void SB_Change(SaberBase::ChangeType change) override {
@@ -820,7 +832,7 @@ public:
   void Loop() override {
     if (state_ == STATE_WAIT_FOR_ON) {
       if (!GetWavPlayerPlaying(&SFX_preon)) {
-	SaberBase::TurnOn();
+	SaberBase::TurnOn(saved_location_);
 	return;
       }
     }
@@ -829,7 +841,7 @@ public:
 	  !GetWavPlayerPlaying(&SFX_poweroff) &&
 	  !GetWavPlayerPlaying(&SFX_pwroff)) {
 	check_postoff_ = false;
-	SaberBase::DoEffect(EFFECT_POSTOFF, 0);
+	SaberBase::DoEffect(EFFECT_POSTOFF, saved_location_);
       }
     }
   }
@@ -864,7 +876,7 @@ public:
   State state_;
   float volume_;
   float current_effect_length_ = 0.0;
-
+  EffectLocation saved_location_;
 };
 
 #endif
