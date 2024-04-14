@@ -149,7 +149,19 @@ public:
     delete style->style_allocator->make();
     return ap.next();
   }
+<<<<<<< HEAD
 
+=======
+  bool GetBuiltinPos(const char* str, int* preset, int* blade) {
+    *preset = -1;
+    *blade = -1;
+    if (!FirstWord(str, "builtin")) return false;
+    ArgParser ap(SkipWord(str));
+    *preset = strtol(ap.GetArg(1, "", ""), nullptr, 10);
+    *blade = strtol(ap.GetArg(2, "", ""), nullptr, 10);
+    return *preset >= 0 && *blade >= 1;
+  }
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
   // Returns the maximum argument used.
   int MaxUsedArgument(const char* str) {
     NamedStyle* style = FindStyle(str);
@@ -210,6 +222,21 @@ public:
     return ap.nth(arg);
   }
 
+<<<<<<< HEAD
+=======
+  // Returns the ArgInfo for this style.
+  ArgInfo GetArgInfo(const char* str) {
+    NamedStyle* style = FindStyle(str);
+    if (!style) return ArgInfo();
+    GetUsedArgsParser ap(SkipWord(str));
+    CurrentArgParser = &ap;
+    delete style->style_allocator->make();
+    // Ignore the two "builtin" arguments
+    if (FirstWord(str, "builtin") && ap.used() <= 2) return ArgInfo();
+    return ap.getArgInfo();
+  }
+
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
   // Get the Nth argument of a style string.
   // The output will be copied to |output|.
   // If the string itself doesn't contain that argument, the style
@@ -358,6 +385,7 @@ public:
       end = SkipWord(end);
     }
     operator bool() const { return end > start; }
+    bool contains(char c) { return StringPiece(start, end).contains(c); }
     int len() const {
       if (end == start) return 2;
       return end - start;
@@ -411,6 +439,43 @@ public:
 #if defined(DEBUG)
     if (strlen(ret) != len) {
       STDOUT << "FATAL ERROR IN COPYARGUMENTS: len = " << len << " strlen = " << strlen(ret) << "\n";
+    }
+#endif    
+    return LSPtr<char>(ret);
+  }
+
+  // Takes the style identifier "builtin X Y" and all numeric arguments from |to|
+  // and all color arguments from |from| and puts them together into one string.
+  LSPtr<char> CopyColorArguments(const char* from, const char* to) {
+    int len = 0;
+    {
+      ArgumentIterator FROM(from);
+      ArgumentIterator TO(to);
+      for (int arg = 0; FROM || TO; arg++, FROM.next(), TO.next()) {
+	if (FROM.contains(',') || TO.contains(',')) {
+	  len += FROM.len();
+	} else {
+	  len += TO.len();
+	}
+      }
+    }
+    char* ret = (char*) malloc(len + 1);
+    if (ret) {
+      char* tmp = ret;
+      ArgumentIterator FROM(from);
+      ArgumentIterator TO(to);
+      for (int arg = 0; FROM || TO; arg++, FROM.next(), TO.next()) {
+	if (FROM.contains(',') || TO.contains(',')) {
+	  FROM.append(&tmp);
+	} else {
+	  TO.append(&tmp);
+	}
+      }
+    }
+    // STDOUT << "CopyArguments(from=" << from << " to=" << to << ") = " << ret << "\n";
+#if defined(DEBUG)
+    if (strlen(ret) != len) {
+      STDOUT << "FATAL ERROR IN COPYCOLORARGUMENTS: len = " << len << " strlen = " << strlen(ret) << "\n";
     }
 #endif    
     return LSPtr<char>(ret);

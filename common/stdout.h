@@ -150,6 +150,7 @@ private:
   char line_[MAXLINE];
 };
 
+<<<<<<< HEAD
 int constexpr toLower(char x) {
   return (x >= 'A' && x <= 'Z') ? x - 'A' + 'a' : x;
 }
@@ -195,6 +196,14 @@ struct StringPiece {
   size_t len;
 };
 
+=======
+#include "string_piece.h"
+
+void StringPiece::printTo(Print& p) {
+  p.write((const uint8_t*)str, len);
+}
+
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 template<size_t bufsize>
 struct Line {
   int line_number;

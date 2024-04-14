@@ -85,7 +85,11 @@ struct ColorChangeOnlyMenuSpec {
   typedef mode::SmoothWraparoundMode<SPEC> SmoothWraparoundMode;
   typedef mode::SmoothVariationMode<SPEC> SmoothVariationMode;
   typedef mode::SteppedVariationMode<SPEC> SteppedVariationMode;
+<<<<<<< HEAD
   typedef mode::ColorChangeMode<SPEC> RootMenu;
+=======
+  typedef mode::ColorChangeMode<SPEC> ColorChangeMenu;
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 };
 
 #endif

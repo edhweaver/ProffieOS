@@ -3,7 +3,11 @@
 
 // Menues made of menu entries.
 // Use like:
+<<<<<<< HEAD
 // MenuListMode<SPEC,
+=======
+// MenuEntryMenu<SPEC,
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 //    MenuEntry1,
 //    MenuEntry2,
 //    MenuEntry3>
@@ -18,13 +22,43 @@ struct MenuEntry {
   virtual void select(int entry) = 0;
 };
 
+<<<<<<< HEAD
 template<class SUBMENU, class SOUND>
 struct SubMenuEntry : public MenuEntry {
   static const int size = 1;
+=======
+struct NullEntry : public MenuEntry {
+  static const int size = 0;
+  virtual void say(int entry) {};
+  virtual void select(int entry) {};
+};
+
+template<class SUBMENU, class SOUND>
+struct SubMenuEntry : public MenuEntry {
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
   void say(int entry) override { SOUND::say(); }
   void select(int entry) override { pushMode<SUBMENU>(); }
 };
 
+<<<<<<< HEAD
+=======
+// CMD and arg are expected to be ByteArray.
+template<class CMD, class ARG, class SOUND>
+struct CommandMenuEntry : public MenuEntry {
+  void say(int entry) override { SOUND::say(); }
+  void select(int entry) override {
+    CommandParser::DoParse(CMD::str, ARG::str);
+  }
+};
+
+
+template<class SOUND>
+struct PopMenuEntry : public MenuEntry {
+  void say(int entry) override { SOUND::say(); }
+  void select(int entry) override { popMode(); }
+};
+
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 template<class A, class B>
 struct MenuEntryConcat : public MenuEntry {
   static const int size = A::size + B::size;
@@ -44,7 +78,11 @@ private:
 template<class TL> struct MenuListHelper {
   typedef SplitTypeList<TL> split;
   typedef MenuEntryConcat<typename MenuListHelper<typename split::first_half>::type,
+<<<<<<< HEAD
                           typename MenuListHelper<typename split::secondHalf>::type > type;
+=======
+                          typename MenuListHelper<typename split::second_half>::type > type;
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 };
 
 // Specialization for one Entry

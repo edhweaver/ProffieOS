@@ -581,6 +581,7 @@ struct is_same_type<T, T> { static const bool value = true; };
 #include "functions/mod.h"
 #include "functions/readpin.h"
 #include "functions/bullet_count.h"
+#include "functions/blaster_mode.h"
 
 // transitions
 #include "transitions/fade.h"
@@ -638,6 +639,13 @@ class NoLED;
 #include "modes/bool_setting.h"
 #include "modes/color_menues.h"
 #include "modes/sorted_list_menues.h"
+<<<<<<< HEAD
+=======
+#include "modes/preset_modes.h"
+#include "modes/style_option_modes.h"
+#include "modes/settings_menues.h"
+#include "modes/default_spec.h"
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 
 BladeConfig* current_config = nullptr;
 class BladeBase* GetPrimaryBlade() {
@@ -653,6 +661,17 @@ class BladeBase* GetPrimaryBlade() {
 int GetBladeNumber(BladeBase *blade) {
   ONCEPERBLADE(BLADE_NUMBER_FINDER);
   return 0;
+}
+
+#define RETURN_BLADE_BY_NUMBER(N) case N: return current_config->blade##N;
+
+// 1 is first blade
+BladeBase* GetBladeByNumber(int n) {
+  if (!current_config) return nullptr;
+  switch (n) {
+    ONCEPERBLADE(RETURN_BLADE_BY_NUMBER);
+  }
+  return nullptr;
 }
 
 const char* GetSaveDir() {
@@ -693,9 +712,50 @@ int prop_GetBulletCount() {
 }
 #endif
 
+<<<<<<< HEAD
 class Color16 GetColorArg(int blade, int arg) { return prop.GetColorArg(blade, arg); }
 void SetArg(int blade, int arg, const char* argument) { prop.SetArg(blade, arg, argument); }
 void SetColorArg(int blade, int arg, Color16 color) { prop.SetColorArg(blade, arg, color); }
+=======
+#ifdef PROP_HAS_GETBLASTERMODE
+int prop_GetBlasterMode() {
+    return prop.GetBlasterMode();
+}
+#endif
+
+
+#ifdef DYNAMIC_CLASH_THRESHOLD
+int prop_GetCurrentClashThreshold() {
+  return prop.GetCurrentClashThreshold();
+}
+void prop_SetClashThreshold(int clash_threshold) {
+  prop.SetClashThreshold(clash_threshold);
+}
+#endif
+
+#ifdef DYNAMIC_BLADE_LENGTH
+int prop_GetBladeLength(int blade) {
+  return prop.GetBladeLength(blade); 
+}
+int prop_GetMaxBladeLength(int blade) {
+  return prop.GetMaxBladeLength(blade);
+}
+void prop_SetBladeLength(int blade, int len) {
+  prop.SetBladeLength(blade, len);
+}
+#endif
+
+int prop_GetPresetPosition() {
+  return prop.GetPresetPosition();
+}
+void prop_MovePreset(int position) {
+  prop.MovePreset(position);
+}
+
+const char* GetStyle(int blade) { return prop.GetStyle(blade); }
+void SetStyle(int blade, LSPtr<char> style);
+void SetStyle(int blade, LSPtr<char> style) { prop.SetStyle(blade, std::move(style)); }
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 void SetFont(const char* font) { prop.SetFont(font); }
 void SetTrack(const char* track) { prop.SetTrack(track); }
 const char* GetFont() { return prop.GetFont(); }
@@ -1613,6 +1673,7 @@ void setup() {
 #endif
 
   Looper::DoSetup();
+  PVLOG_DEBUG << "***************** Booting up! *******************\n";
   // Time to identify the blade.
   prop.FindBlade(true);
   SaberBase::DoBoot();

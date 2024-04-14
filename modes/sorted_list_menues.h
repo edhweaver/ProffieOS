@@ -18,11 +18,19 @@ public:
   SelectFromListModeBase(const char* cmd) : SortedLineHelper<128>(cmd) {}
 
   uint16_t size() override { return num_lines_; }
+<<<<<<< HEAD
   const StringPiece get() { return get(this->pos_); }
 
   void activate(bool onreturn) override {
     this->pos_ = SortedLineHelper<128>::init();
     SPEC::MenuBase::activate(onreturn);
+=======
+  const StringPiece get() { return SortedLineHelper<128>::get(this->pos_); }
+
+  void mode_activate(bool onreturn) override {
+    this->pos_ = SortedLineHelper<128>::init();
+    SPEC::MenuBase::mode_activate(onreturn);
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
     this->say();
   }
 };
@@ -32,6 +40,7 @@ template<class SPEC>
 class SelectFontMode : public SPEC::SelectFromListModeBase {
 public:
   SelectFontMode() : SPEC::SelectFromListModeBase("list_fonts") {}
+<<<<<<< HEAD
   const StringPiece get_current_value() override {
     return current_value_;
   }
@@ -41,6 +50,17 @@ public:
   }
   void exit() override {
     SPEC::SelectFromListModeBase::Exit();
+=======
+  StringPiece get_current_value() override {
+    return current_value_;
+  }
+  void mode_activate(bool onreturn) override {
+    current_value_ = match_pattern(GetFont(), FONT_PATTERN);
+    SPEC::SelectFromListModeBase::mode_activate(onreturn);
+  }
+  void exit() override {
+    SPEC::SelectFromListModeBase::exit();
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
     chdir(GetFont());
   }
   void say() override {
@@ -60,7 +80,11 @@ template<class SPEC>
 class SelectTrackMode : public SPEC::SelectFromListModeBase {
 public:
   SelectTrackMode() : SPEC::SelectFromListModeBase("list_tracks") {}
+<<<<<<< HEAD
   const char* get_current_value() override {
+=======
+  StringPiece get_current_value() override {
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
     return GetTrack();
   }
   void fadeout(float len) override {

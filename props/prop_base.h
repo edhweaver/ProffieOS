@@ -1119,7 +1119,11 @@ public:
 
 #ifdef MENU_SPEC_TEMPLATE
   void EnterMenu() {
+<<<<<<< HEAD
     pushMode<MENUSPEC<MENU_SPEC_TEMPLATE>::RootMenu>();
+=======
+    pushMode<MKSPEC<MENU_SPEC_TEMPLATE>::TopMenu>();
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
   }
 #endif
 
@@ -1132,7 +1136,11 @@ public:
   void ToggleColorChangeMode() {
     if (!current_style()) return;
     if (current_mode == this) {
+<<<<<<< HEAD
       pushMode<MKSPEC<COLOR_CHANGE_MENU_SPEC_TEMPLATE>::RootMenu>();
+=======
+      pushMode<MKSPEC<COLOR_CHANGE_MENU_SPEC_TEMPLATE>::ColorChangeMenu>();
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
     }
   }
 #endif  // DISABLE_COLOR_CHANGE
@@ -1714,6 +1722,7 @@ public:
   }
   virtual bool Event2(enum BUTTON button, EVENT event, uint32_t modifiers) = 0;
 
+<<<<<<< HEAD
 
   Color16 GetColorArg(int blade, int arg) {
     char argspace[32];
@@ -1744,6 +1753,16 @@ public:
     current_preset_.Save();
   }
 
+=======
+  const char* GetStyle(int blade) {
+    return current_preset_.GetStyle(blade);
+  }
+  void SetStyle(int blade, LSPtr<char> style) {
+    current_preset_.SetStyle(blade, std::move(style));
+    current_preset_.Save();
+  }
+  
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
   void SetFont(const char* font) {
     current_preset_.font = mkstr(font);
     current_preset_.Save();
@@ -1761,6 +1780,16 @@ public:
   const char* GetTrack() {
     return current_preset_.track.get();
   }
+<<<<<<< HEAD
+=======
+
+  int GetPresetPosition() {
+    return current_preset_.preset_num;
+  }
+  void MovePreset(int position) {
+    current_preset_.SaveAt(position);
+  }
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
   
 private:
   bool CommonIgnition() {
