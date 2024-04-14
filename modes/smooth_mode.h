@@ -36,12 +36,30 @@ struct SmoothMode : public SPEC::SelectCancelMode {
   virtual float revolutions() { return 3.0f; }
   void mode_activate(bool onreturn) override {
     last_angle_ = fusor.angle2();
+<<<<<<< HEAD
     angle_ = (get() + 0.5) * M_PI * 2 * revolutions() / 32768;
+=======
+    val_ = get();
+    angle_ = (val_ + 0.5) * M_PI * 2 * revolutions() / 32768;
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
   }
 
   // x = 0-32767
   virtual int get() = 0;
   virtual void set(int x) = 0;
+<<<<<<< HEAD
+=======
+  virtual void save() {}
+
+  void select() override {
+    save();
+    popMode();
+  }
+
+  void exit() override {
+    set(val_);
+  }
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 
   void mode_Loop() override {
     float a = fusor.angle2();
@@ -61,10 +79,16 @@ struct SmoothMode : public SPEC::SelectCancelMode {
   
   float angle_;
   float last_angle_;
+<<<<<<< HEAD
 };
 
 // TODO: Smooth mode without wraparound.
 
+=======
+  int val_;
+};
+
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 } // namespace mode
 
 #endif

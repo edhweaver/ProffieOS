@@ -30,7 +30,15 @@ void popMode() {
 }
 
 namespace mode {
+<<<<<<< HEAD
 template<class SPEC> typename SPEC::SoundLibrary* getSL() { return getPtr<SPEC::SoundLibrary>(); }
 }  
+=======
+template<class SPEC> typename SPEC::SoundLibrary* getSL() {
+  return getPtr<typename SPEC::SoundLibrary>();
+}
+
+}  // namespace mode
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
 
 #endif

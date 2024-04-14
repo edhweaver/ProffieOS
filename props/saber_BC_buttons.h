@@ -721,8 +721,11 @@ public:
       // Delay twist events to prevent false trigger from over twisting
       if (millis() - last_twist_ > 3000) {
         last_twist_ = millis();
+<<<<<<< HEAD
         saber_off_time_ = millis();
         battle_mode_ = false;
+=======
+>>>>>>> 7e0c592331908007b0b4acbf2a0438c3a2eb579e
         TurnOffHelper();
       }
       return true;
